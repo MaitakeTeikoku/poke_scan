@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 
 _python/images/*
+_python/images/images.zip
