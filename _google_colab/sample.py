@@ -14,16 +14,14 @@ from tensorflow.keras.models import Sequential
 
 import pathlib
 
-# 追加のライブラリ
-from datetime import datetime
-import pytz
+drive_dir = '/content/drive/MyDrive/development/poke_scan/sample'
+models_dir = f'{drive_dir}/models'
 
 """
 2. データセットをダウンロードして調査する
 """
 # 使用するデータセットを指定します。
-dir = '/content/poke_scan'
-images_dir = f'{dir}/images'
+images_dir = f'/content/poke_scan/images'
 data_dir = pathlib.Path(images_dir).with_suffix('')
 
 # PNGファイルの数を数えてみます。
@@ -126,7 +124,7 @@ model = Sequential([
   layers.MaxPooling2D(),
   layers.Flatten(),
   layers.Dense(128, activation='relu'),
-  layers.Dense(num_classes)
+  layers.Dense(num_classes, name="outputs")
 ])
 
 """
@@ -184,13 +182,12 @@ plt.title('Training and Validation Loss')
 """
 グラフで視覚化したトレーニングの結果を画像で保存
 """
-results_dir = f'{dir}/results'
+file_name = f"{num_classes}_{epochs}epochs"
+results_dir = f'{drive_dir}/results'
 pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
-tokyo_tz = pytz.timezone('Asia/Tokyo')
-now = datetime.now(tokyo_tz).strftime('%Y-%m-%d_%H-%M-%S')
-file_name = f"{results_dir}/result_{now}.png"
-plt.savefig(file_name)
+result_name = f"{results_dir}/result_{file_name}.png"
+plt.savefig(result_name)
 
 """
 11. 新しいデータを予測する
@@ -213,7 +210,6 @@ print(
     .format(class_names[np.argmax(score)], 100 * np.max(score))
 )
 
-'''
 """
 12. TensorFlow Lite を使用する
 12-1. Keras Sequential モデルを TensorFlow Lite モデルに変換する
@@ -224,26 +220,26 @@ converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 
 # Save the model.
-with open('model.tflite', 'wb') as f:
+with open(f'{models_dir}/model_{file_name}.tflite', 'wb') as f:
   f.write(tflite_model)
 
 """
 12-2. TensorFlow Lite モデルを実行する
 """
 # Interpreter を使用してモデルを読み込みます。
-TF_MODEL_FILE_PATH = 'model.tflite' # The default path to the saved TensorFlow Lite model
+TF_MODEL_FILE_PATH = f'{models_dir}/model_{file_name}.tflite' # The default path to the saved TensorFlow Lite model
 
 interpreter = tf.lite.Interpreter(model_path=TF_MODEL_FILE_PATH)
 
 # 変換されたモデルからシグネチャを出力して、入力 (および出力) の名前を取得します。
-interpreter.get_signature_list()
+print(interpreter.get_signature_list())
 
 # 次のようにシグネチャ名を渡すことで、tf.lite.Interpreter.get_signature_runner を使用してサンプル画像で推論を実行し、読み込まれた TensorFlow モデルをテストできます。
 classify_lite = interpreter.get_signature_runner('serving_default')
 classify_lite
 
 # 読み込まれた TensorFlow Lite モデル （predictions_lite）の最初の引数 （'inputs' の名前）に渡し、ソフトマックス活性化を計算し、計算された確率が最も高いクラスの予測を出力します。
-predictions_lite = classify_lite(sequential_1_input=img_array)['outputs']
+predictions_lite = classify_lite(keras_tensor=img_array)['output_0']
 score_lite = tf.nn.softmax(predictions_lite)
 
 print(
@@ -253,20 +249,19 @@ print(
 
 # Lite モデルが生成した予測は、元のモデルが生成した予測とほぼ同一になります。
 print(np.max(np.abs(predictions - predictions_lite)))
-'''
 
 """
 Keras モデルを保存する
 https://www.tensorflow.org/guide/keras/save_and_serialize?hl=ja
 """
 # モデルを保存する
-models_dir = f'{dir}/models'
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 try:
-  model.save(f'{models_dir}/keras_model.keras')
+  model.save(f'{models_dir}/model_{file_name}.keras')
 except Exception as e:
   print(e)
 
+print("--------------------")
 
 """
 9-1. データ拡張
@@ -356,13 +351,12 @@ plt.title('Training and Validation Loss')
 """
 グラフで視覚化したトレーニングの結果を画像で保存（コピー）
 """
-results_dir = f'{dir}/results'
+file_name = f"{num_classes}_{epochs}epochs"
+results_dir = f'{drive_dir}/results'
 pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
-tokyo_tz = pytz.timezone('Asia/Tokyo')
-now = datetime.now(tokyo_tz).strftime('%Y-%m-%d_%H-%M-%S')
-file_name = f"{results_dir}/result_augmentation_{now}.png"
-plt.savefig(file_name)
+result_name = f"{results_dir}/result_augmentation_{file_name}.png"
+plt.savefig(result_name)
 
 """
 11. 新しいデータを予測する（コピー）
@@ -385,14 +379,54 @@ print(
     .format(class_names[np.argmax(score)], 100 * np.max(score))
 )
 
+
+"""
+12. TensorFlow Lite を使用する（コピー）
+12-1. Keras Sequential モデルを TensorFlow Lite モデルに変換する（コピー）
+"""
+# トレーニング済みの Keras Sequential モデルを取得し、tf.lite.TFLiteConverter.from_keras_model を使用して TensorFlow Lite モデルを生成します。
+# Convert the model.
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()
+
+# Save the model.
+with open(f'{models_dir}/model_augmentation_{file_name}.tflite', 'wb') as f:
+  f.write(tflite_model)
+
+"""
+12-2. TensorFlow Lite モデルを実行する（コピー）
+"""
+# Interpreter を使用してモデルを読み込みます。
+TF_MODEL_FILE_PATH = f'{models_dir}/model_augmentation_{file_name}.tflite' # The default path to the saved TensorFlow Lite model
+
+interpreter = tf.lite.Interpreter(model_path=TF_MODEL_FILE_PATH)
+
+# 変換されたモデルからシグネチャを出力して、入力 (および出力) の名前を取得します。
+print(interpreter.get_signature_list())
+
+# 次のようにシグネチャ名を渡すことで、tf.lite.Interpreter.get_signature_runner を使用してサンプル画像で推論を実行し、読み込まれた TensorFlow モデルをテストできます。
+classify_lite = interpreter.get_signature_runner('serving_default')
+classify_lite
+
+# 読み込まれた TensorFlow Lite モデル （predictions_lite）の最初の引数 （'inputs' の名前）に渡し、ソフトマックス活性化を計算し、計算された確率が最も高いクラスの予測を出力します。
+predictions_lite = classify_lite(keras_tensor_15=img_array)['output_0']
+score_lite = tf.nn.softmax(predictions_lite)
+
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score_lite)], 100 * np.max(score_lite))
+)
+
+# Lite モデルが生成した予測は、元のモデルが生成した予測とほぼ同一になります。
+print(np.max(np.abs(predictions - predictions_lite)))
+
 """
 Keras モデルを保存する（コピー）
 https://www.tensorflow.org/guide/keras/save_and_serialize?hl=ja
 """
 # モデルを保存する
-models_dir = f'{dir}/models'
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 try:
-  model.save(f'{models_dir}/keras_model_augmentation.keras')
+  model.save(f'{models_dir}/model_augmentation_{file_name}.keras')
 except Exception as e:
   print(e)
