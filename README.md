@@ -21,6 +21,7 @@
     ```
     ```sh
     npm install vite-plugin-pwa
+    npm i @tensorflow/tfjs
     ```
 1. ローカルで起動。
     ```sh

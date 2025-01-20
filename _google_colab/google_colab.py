@@ -16,7 +16,7 @@ import pathlib
 # 追加のライブラリ
 import tensorflowjs as tfjs
 
-epochs=15
+epochs = 15
 
 drive_dir = '/content/drive/MyDrive/development/poke_scan'
 
@@ -106,7 +106,7 @@ model = Sequential([
   layers.Dropout(0.2), # ドロップアウト
   layers.Flatten(),
   layers.Dense(128, activation='relu'),
-  layers.Dense(num_classes)
+  layers.Dense(num_classes, name="outputs")
 ])
 
 """
@@ -181,16 +181,18 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 try:
   model.save(f'{models_dir}/model_{file_name}.keras')
 except Exception as e:
-  print(e)
+  print(f"keras エラー: {e}")
 
 """
 TensorFlow.js モデルを保存する
 https://www.tensorflow.org/js/tutorials/conversion/import_keras?hl=ja
 !pip install tensorflowjs
 """
-
+try:
 # TensorFlow.jsモデルとして保存
-tfjs.converters.save_keras_model(model, f'{models_dir}/model_{file_name}_tfjs')
+  tfjs.converters.save_keras_model(model, f'{models_dir}/model_{file_name}_tfjs')
+except Exception as e:
+  print(f"tfjs エラー: {e}")
 
 """
 12. TensorFlow Lite を使用する

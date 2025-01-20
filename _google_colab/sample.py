@@ -16,6 +16,7 @@ import pathlib
 
 drive_dir = '/content/drive/MyDrive/development/poke_scan/sample'
 models_dir = f'{drive_dir}/models'
+pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 
 """
 2. データセットをダウンロードして調査する
@@ -255,7 +256,6 @@ Keras モデルを保存する
 https://www.tensorflow.org/guide/keras/save_and_serialize?hl=ja
 """
 # モデルを保存する
-pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 try:
   model.save(f'{models_dir}/model_{file_name}.keras')
 except Exception as e:
@@ -425,7 +425,6 @@ Keras モデルを保存する（コピー）
 https://www.tensorflow.org/guide/keras/save_and_serialize?hl=ja
 """
 # モデルを保存する
-pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 try:
   model.save(f'{models_dir}/model_augmentation_{file_name}.keras')
 except Exception as e:
