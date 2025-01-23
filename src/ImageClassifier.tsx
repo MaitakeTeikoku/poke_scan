@@ -60,6 +60,7 @@ const ImageClassifier: React.FC = () => {
 
   // 画像分類処理
   const classifyImage = async () => {
+    setPredictions(`Predicted Pokémon: ...`);
     if (model && image) {
       const imgElement = document.createElement('img');
       imgElement.src = image;
