@@ -180,6 +180,7 @@ models_dir = f'{drive_dir}/models'
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 try:
   model.save(f'{models_dir}/model_{file_name}.keras')
+  tf.saved_model.save(model, f'{models_dir}/model_{file_name}_savedmodel')
 except Exception as e:
   print(f"keras エラー: {e}")
 

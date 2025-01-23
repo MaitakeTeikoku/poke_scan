@@ -25,16 +25,16 @@ def download_image(url, name, download_dir):
         print(e)
         logging.error(e)
 
-def download_images(sprites, download_dir, file_name):
+def download_images(sprites, download_dir, id):
     try:
         if isinstance(sprites, dict):
             for index, (key, value) in enumerate(sprites.items()):
                 if isinstance(value, dict):
                     # 値が辞書なら再帰的に処理
-                    download_images(value, download_dir, f"{file_name}_{index}")
+                    download_images(value, download_dir, f"{id}_{index}")
                 elif isinstance(value, str) and value.endswith(('.png')) and not any(x in value for x in ['shiny', 'gray']):
                     # URLが文字列であればダウンロード
-                    download_image(value, f"{file_name}_{index}_{key}", download_dir)
+                    download_image(value, f"{id}_{index}_{key}", download_dir)
 
     except Exception as e:
         # その他のエラーをログに記録
@@ -57,7 +57,7 @@ def download_data(id, dir):
             raise Exception(f"No. {id} の情報を取得できませんでした。: {response.status_code}")
 
         data = response.json()
-        sprites = data.get("sprites", {})
+        sprites = data.get("sprites")
 
         download_images(sprites, download_dir, id)
     

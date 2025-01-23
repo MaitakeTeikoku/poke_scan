@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import * as tf from '@tensorflow/tfjs';
 
 const ImageClassifier: React.FC = () => {
-  const host = import.meta.env.DEV ? 'http://192.168.11.2:5173/' : 'https://maitaketeikoku.github.io/poke_scan';
+  const host = import.meta.env.DEV ? 'http://192.168.11.2:5173' : 'https://maitaketeikoku.github.io/poke_scan';
 
   // 利用可能なモデルのリスト
   const modelOptions = [
     {
-      name: 'teachable Machine',
+      name: 'poke_scan_types',
+      url: `${host}/models/poke_scan_types/model.json`,
+    },
+    {
+      name: 'poke_scan_test',
       url: `${host}/models/poke_scan_test/model.json`,
     },
     {
