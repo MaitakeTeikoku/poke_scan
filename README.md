@@ -22,6 +22,8 @@
     ```sh
     npm install vite-plugin-pwa
     npm i @tensorflow/tfjs
+    npm i @yamada-ui/react @yamada-ui/lucide
+    npm i @yamada-ui/charts
     ```
 1. ローカルで起動。
     ```sh

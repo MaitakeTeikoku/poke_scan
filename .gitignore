@@ -25,5 +25,8 @@ dist-ssr
 
 _python/images
 _python/images.zip
+_python/zip_images
+_python/**/*.zip
 _python/poke_scan_types/types_images
 _python/poke_scan_types/types_images_all
+

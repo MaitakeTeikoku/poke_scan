@@ -1,47 +1,33 @@
-"""
-https://www.tensorflow.org/tutorials/images/classification?hl=ja
-1. セットアップ
-"""
-# TensorFlow とその他の必要なライブラリをインポートします。
-import matplotlib.pyplot as plt
-import numpy as np
-import tensorflow as tf
+# https://www.tensorflow.org/tutorials/images/classification?hl=ja
 
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 
-import pathlib
-
-# 追加のライブラリ
 import tensorflowjs as tfjs
+
+from datetime import datetime
+import pytz
+import matplotlib.pyplot as plt
+import pathlib
 
 epochs = 15
 
 drive_dir = '/content/drive/MyDrive/development/poke_scan'
-
-"""
-2. データセットをダウンロードして調査する
-"""
-# 使用するデータセットを指定します。
 images_dir = f'/content/poke_scan/images'
-data_dir = pathlib.Path(images_dir).with_suffix('')
 
-# PNGファイルの数を数えてみます。
+# 画像数をカウント
+data_dir = pathlib.Path(images_dir).with_suffix('')
 image_count = len(list(data_dir.glob('*/*.png')))
 print(f"画像数: {image_count}")
 
-"""
-3. Keras ユーティリティを使用してデータを読み込む
-3-1. データセットを作成する
-"""
-# ローダーのいくつかのパラメーターを定義します。
+# 画像の読み込み
 batch_size = 32
-img_height = 180
-img_width = 180
+img_height = 224
+img_width = 224
 
-# モデルを開発するときは、検証分割を使用することをお勧めします。
-# ここでは、画像の 80％ をトレーニングに使用し、20％ を検証に使用します。
+# 訓練データセットを作成
 train_ds = tf.keras.utils.image_dataset_from_directory(
   data_dir,
   validation_split=0.2,
@@ -50,6 +36,7 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
   image_size=(img_height, img_width),
   batch_size=batch_size)
 
+# 検証データセットを作成
 val_ds = tf.keras.utils.image_dataset_from_directory(
   data_dir,
   validation_split=0.2,
@@ -58,200 +45,150 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
   image_size=(img_height, img_width),
   batch_size=batch_size)
 
-# クラス名は、これらのデータセットのclass_names属性にあります。 
-# これらはアルファベット順にディレクトリ名に対応します。
+# クラス名を取得（ディレクトリ名のアルファベット順）
 class_names = train_ds.class_names
-print(f"クラス名: {class_names}")
+print(f"クラス数: {len(class_names)}")
 
-"""
-5. データセットを構成してパフォーマンスを改善する
-"""
-# I/O がブロックされることなくディスクからデータを取得できるように、必ずバッファ付きプリフェッチを使用します。
+# データ拡張
+data_augmentation = keras.Sequential(
+  [
+    layers.RandomFlip("horizontal",
+                      input_shape=(img_height,
+                                  img_width,
+                                  3)),
+    layers.RandomRotation(0.1),
+    layers.RandomZoom(0.1),
+    layers.RandomContrast(0.1),
+    layers.RandomBrightness(0.1),
+  ]
+)
+# データ拡張をトレーニングデータに適用
+train_ds = train_ds.map(lambda x, y: (data_augmentation(x, training=True), y))
+
+# キャッシュとプリフェッチをして、パフォーマンスを改善
 AUTOTUNE = tf.data.AUTOTUNE
-
 train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-"""
-6. データを標準化する
-"""
-# RGB チャネル値は [0, 255] の範囲にあり、ニューラルネットワークには理想的ではありません。
-# 一般に、入力値は小さくする必要があります。
-normalization_layer = layers.Rescaling(1./255)
-
-# Dataset.map を呼び出すことにより、データセットに適用できます。
-normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
-image_batch, labels_batch = next(iter(normalized_ds))
-first_image = image_batch[0]
-# Notice the pixel values are now in `[0,1]`.
-print(np.min(first_image), np.max(first_image))
-
-"""
-7. 基本的な Keras モデル
-7-1. モデルを作成する
-"""
-# Sequential モデルは、それぞれに最大プールレイヤー （tf.keras.layers.MaxPooling2D）を持つ 3 つの畳み込みブロック（tf.keras.layers.Conv2D）で構成されます。
-# ReLU 活性化関数（'relu'）により活性化されたユニットが 128 個ある完全に接続されたレイヤー （tf.keras.layers.Dense）があります。
-# このチュートリアルの目的は、標準的なアプローチを示すことなので、このモデルは高精度に調整されていません。
+# モデルを作成
 num_classes = len(class_names)
 
 model = Sequential([
-  layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
-  layers.Conv2D(16, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Conv2D(32, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Conv2D(64, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Dropout(0.2), # ドロップアウト
-  layers.Flatten(),
-  layers.Dense(128, activation='relu'),
-  layers.Dense(num_classes, name="outputs")
+    # 入力の正規化
+    layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
+    # 畳み込み層ブロック1
+    layers.Conv2D(32, 5, padding='same', activation='relu'),
+    layers.MaxPooling2D(),   
+    # 畳み込み層ブロック2
+    layers.Conv2D(64, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    # 畳み込み層ブロック3
+    layers.Conv2D(128, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    # 畳み込み層ブロック4
+    layers.Conv2D(256, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    # ドロップアウト
+    layers.Dropout(0.2),
+    # 全結合層
+    layers.Flatten(),
+    layers.Dense(512, activation='relu'),
+    layers.Dense(num_classes, activation='softmax', name="outputs")
 ])
 
-"""
-7-2. モデルをコンパイルする
-"""
-# このチュートリアルでは、tf.keras.optimizers.Adam オプティマイザとtf.keras.losses.SparseCategoricalCrossentropy 損失関数を選択します。
-# 各トレーニングエポックのトレーニングと検証の精度を表示するには、Model.compile に metrics 引数を渡します。
-model.compile(optimizer='adam',
+# モデルをコンパイル
+#optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+model.compile(optimizer="adam",
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
-"""
-7-3. モデルの概要
-"""
-# Keras の Model.summary メソッドを使用して、ネットワークのすべてのレイヤーを表示します。
+# モデルの概要を表示
 model.summary()
 
-"""
-7-4. モデルをトレーニングする
-"""
-# Keras Model.fit メソッドを使用して、10 エポックのモデルをトレーニングします。
-#epochs=10
+# モデルをトレーニング、早期終了を設定
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
 history = model.fit(
   train_ds,
   validation_data=val_ds,
-  epochs=epochs
+  epochs=epochs,
+  callbacks=[early_stopping]
 )
 
-"""
-8. トレーニングの結果を視覚化する
-"""
-# トレーニングセットと検証セットで損失と精度のプロットを作成します。
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
+# 早期終了のエポック数を表示
+file_name_epochs = epochs
+if early_stopping.stopped_epoch > 0:
+  file_name_epochs = f"{early_stopping.stopped_epoch + 1}-{epochs}"
+  epochs = early_stopping.stopped_epoch + 1
+  print(f"早期終了 エポック数: {early_stopping.stopped_epoch + 1}")
+else:
+  print("早期終了なし")
 
-loss = history.history['loss']
-val_loss = history.history['val_loss']
+# ファイル名
+japan_tz = pytz.timezone("Asia/Tokyo")
+now = datetime.now(japan_tz)
+now = now.strftime("%Y%m%d-%H%M%S")
+file_name = f"{now}_{num_classes}classes_{file_name_epochs}epochs"
 
-epochs_range = range(epochs)
+# トレーニングの結果をグラフ化
+try:
+  acc = history.history['accuracy']
+  val_acc = history.history['val_accuracy']
 
-plt.figure(figsize=(8, 8))
-plt.subplot(1, 2, 1)
-plt.plot(epochs_range, acc, label='Training Accuracy')
-plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-plt.legend(loc='lower right')
-plt.title('Training and Validation Accuracy')
+  loss = history.history['loss']
+  val_loss = history.history['val_loss']
 
-plt.subplot(1, 2, 2)
-plt.plot(epochs_range, loss, label='Training Loss')
-plt.plot(epochs_range, val_loss, label='Validation Loss')
-plt.legend(loc='upper right')
-plt.title('Training and Validation Loss')
-#plt.show()
+  epochs_range = range(epochs)
 
-"""
-グラフで視覚化したトレーニングの結果を画像で保存
-"""
-file_name = f"{num_classes}_{epochs}epochs"
-results_dir = f'{drive_dir}/results'
-pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
+  plt.figure(figsize=(8, 8))
+  plt.subplot(1, 2, 1)
+  plt.plot(epochs_range, acc, label='Training Accuracy')
+  plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+  plt.legend(loc='lower right')
+  plt.title('Training and Validation Accuracy')
 
-result_name = f"{results_dir}/result_{file_name}.png"
-plt.savefig(result_name)
+  plt.subplot(1, 2, 2)
+  plt.plot(epochs_range, loss, label='Training Loss')
+  plt.plot(epochs_range, val_loss, label='Validation Loss')
+  plt.legend(loc='upper right')
+  plt.title('Training and Validation Loss')
 
-"""
-Keras モデルを保存する
-https://www.tensorflow.org/guide/keras/save_and_serialize?hl=ja
-"""
-# モデルを保存する
+  # グラフで視覚化したトレーニングの結果を画像で保存
+  results_dir = f'{drive_dir}/results'
+  pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
+
+  result_name = f"{results_dir}/{file_name}.png"
+  plt.savefig(result_name)
+
+  plt.show()
+except Exception as e:
+  print(f"グラフ エラー: {e}")
+
+# モデルを保存するディレクトリを指定
 models_dir = f'{drive_dir}/models'
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
+
+# Keras、savedmodel形式で保存
+# https://www.tensorflow.org/guide/keras/save_and_serialize?hl=ja
 try:
-  model.save(f'{models_dir}/model_{file_name}.keras')
-  tf.saved_model.save(model, f'{models_dir}/model_{file_name}_savedmodel')
+  model.save(f'{models_dir}/{file_name}.keras')
+  tf.saved_model.save(model, f'{models_dir}/{file_name}_savedmodel')
 except Exception as e:
   print(f"keras エラー: {e}")
 
-"""
-TensorFlow.js モデルを保存する
-https://www.tensorflow.org/js/tutorials/conversion/import_keras?hl=ja
-!pip install tensorflowjs
-"""
+# TensorFlow.js モデルに変換して保存
+# https://www.tensorflow.org/js/tutorials/conversion/import_keras?hl=ja
+# !pip install tensorflowjs
 try:
-# TensorFlow.jsモデルとして保存
-  tfjs.converters.save_keras_model(model, f'{models_dir}/model_{file_name}_tfjs')
+  tfjs.converters.save_keras_model(model, f'{models_dir}/{file_name}_tfjs')
 except Exception as e:
   print(f"tfjs エラー: {e}")
 
-"""
-12. TensorFlow Lite を使用する
-12-1. Keras Sequential モデルを TensorFlow Lite モデルに変換する
-"""
-# トレーニング済みの Keras Sequential モデルを取得し、tf.lite.TFLiteConverter.from_keras_model を使用して TensorFlow Lite モデルを生成します。
-# Convert the model.
-converter = tf.lite.TFLiteConverter.from_keras_model(model)
-tflite_model = converter.convert()
+# TensorFlow Lite モデルに変換して保存
+try:
+  converter = tf.lite.TFLiteConverter.from_keras_model(model)
+  tflite_model = converter.convert()
 
-# Save the model.
-with open(f'{models_dir}/model_{file_name}.tflite', 'wb') as f:
-  f.write(tflite_model)
-
-"""
-11. 新しいデータを予測する
-"""
-# モデルを使用して、トレーニングセットまたは検証セットに含まれていなかった画像を分類します。
-new_data_url = "https://zukan.pokemon.co.jp/zukan-api/up/images/index/7b705082db2e24dd4ba25166dac84e0a.png"
-new_data_path = tf.keras.utils.get_file('new_data', origin=new_data_url)
-
-img = tf.keras.utils.load_img(
-    new_data_path, target_size=(img_height, img_width)
-)
-img_array = tf.keras.utils.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0) # Create a batch
-
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
-
-print(
-    "Keras: This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
-
-"""
-12-2. TensorFlow Lite モデルを実行する
-"""
-# Interpreter を使用してモデルを読み込みます。
-TF_MODEL_FILE_PATH = f'{models_dir}/model_{file_name}.tflite' # The default path to the saved TensorFlow Lite model
-
-interpreter = tf.lite.Interpreter(model_path=TF_MODEL_FILE_PATH)
-
-# 変換されたモデルからシグネチャを出力して、入力 (および出力) の名前を取得します。
-print(interpreter.get_signature_list())
-
-# 次のようにシグネチャ名を渡すことで、tf.lite.Interpreter.get_signature_runner を使用してサンプル画像で推論を実行し、読み込まれた TensorFlow モデルをテストできます。
-classify_lite = interpreter.get_signature_runner('serving_default')
-classify_lite
-
-# 読み込まれた TensorFlow Lite モデル （predictions_lite）の最初の引数 （'inputs' の名前）に渡し、ソフトマックス活性化を計算し、計算された確率が最も高いクラスの予測を出力します。
-predictions_lite = classify_lite(keras_tensor=img_array)['output_0']
-score_lite = tf.nn.softmax(predictions_lite)
-
-print(
-    "TensorFlow Lite: This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score_lite)], 100 * np.max(score_lite))
-)
-
-# Lite モデルが生成した予測は、元のモデルが生成した予測とほぼ同一になります。
-print(np.max(np.abs(predictions - predictions_lite)))
+  with open(f'{models_dir}/{file_name}.tflite', 'wb') as f:
+    f.write(tflite_model)
+except Exception as e:
+  print(f"tflite エラー: {e}")

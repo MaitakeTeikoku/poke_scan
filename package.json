@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
+    "@yamada-ui/charts": "^1.5.13",
+    "@yamada-ui/lucide": "^1.10.3",
+    "@yamada-ui/react": "^1.7.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "vite-plugin-pwa": "^0.21.1"
