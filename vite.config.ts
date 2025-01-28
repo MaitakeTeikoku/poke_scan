@@ -22,6 +22,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      workbox: {
+        globPatterns: ['**/*.{js,css,html}'],
+        globIgnores: ['model/**/*']
+      },
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "logo192.png"],
       injectRegister: "auto",
