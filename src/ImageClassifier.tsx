@@ -8,7 +8,10 @@ import {
 import { PlayIcon, PauseIcon } from "@yamada-ui/lucide";
 import { BarChart, BarProps } from "@yamada-ui/charts";
 
+// 閾値
 const threshold = 0.9;
+// 表示する上位のクラス数
+const topCount = 5;
 
 const url = `${import.meta.env.BASE_URL}models`;
 const pokedex_bg = `${import.meta.env.BASE_URL}pokedex_bg.png`;
@@ -178,10 +181,11 @@ const ImageClassifier: React.FC = () => {
 
         const prediction = (await model.predict(tensor)) as tf.Tensor;
         const predictionData = prediction.dataSync();
-        const topK = Array.from(predictionData)
+        const predictionProbabilities = tf.softmax(tf.tensor(predictionData)).dataSync();
+        const topK = Array.from(predictionProbabilities)
           .map((prob, idx) => ({ id: idx, prob }))
           .sort((a, b) => b.prob - a.prob)
-          .slice(0, 10);
+          .slice(0, topCount);
         const results = topK.map(
           (item) => {
             return {
@@ -296,7 +300,7 @@ const ImageClassifier: React.FC = () => {
           dataKey="name"
           size="sm"
           unit="%"
-          yAxisProps={{ domain: [-100, 100], tickCount: 6 }}
+          yAxisProps={{ domain: [0, 100], tickCount: 6 }}
           gridAxis="x"
           withTooltip={false}
           referenceLineProps={[{ y: threshold * 100, color: "red.500" }]}

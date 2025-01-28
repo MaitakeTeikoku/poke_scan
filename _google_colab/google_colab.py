@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import pathlib
 
 epochs = 15
+early_stopping_patience = 5
 
 drive_dir = '/content/drive/MyDrive/development/poke_scan'
 images_dir = f'/content/poke_scan/images'
@@ -77,8 +78,8 @@ model = Sequential([
     # 入力の正規化
     layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
     # 畳み込み層ブロック1
-    layers.Conv2D(32, 5, padding='same', activation='relu'),
-    layers.MaxPooling2D(),   
+    layers.Conv2D(32, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
     # 畳み込み層ブロック2
     layers.Conv2D(64, 3, padding='same', activation='relu'),
     layers.MaxPooling2D(),
@@ -88,15 +89,15 @@ model = Sequential([
     # 畳み込み層ブロック4
     layers.Conv2D(256, 3, padding='same', activation='relu'),
     layers.MaxPooling2D(),
-    # ドロップアウト
-    layers.Dropout(0.2),
+    # ドロップアウト
+    layers.Dropout(0.5),
     # 全結合層
     layers.Flatten(),
     layers.Dense(512, activation='relu'),
-    layers.Dense(num_classes, activation='softmax', name="outputs")
+    layers.Dense(num_classes, name="outputs")
 ])
 
-# モデルをコンパイル
+# モデルをコンパイル（softmaxのときはfrom_logits=False）
 #optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 model.compile(optimizer="adam",
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -106,7 +107,7 @@ model.compile(optimizer="adam",
 model.summary()
 
 # モデルをトレーニング、早期終了を設定
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=early_stopping_patience)
 history = model.fit(
   train_ds,
   validation_data=val_ds,
