@@ -23,11 +23,6 @@ const models = [
     url: `/151classes_8-15epochs_tfjs`,
     shape: 224
   },
-  {
-    name: '1025classes_10epochs',
-    url: `/1025classes_10epochs_tfjs`,
-    shape: 180
-  },
 ];
 
 const ImageClassifier: React.FC = () => {
