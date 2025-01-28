@@ -23,8 +23,7 @@ export default defineConfig({
     react(),
     VitePWA({
       workbox: {
-        globPatterns: ['**/*.{js,css,html}'],
-        globIgnores: ['model/**/*']
+        maximumFileSizeToCacheInBytes: 100 * 1024 * 1024,
       },
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "logo192.png"],
