@@ -39,7 +39,7 @@ def copy_image(id, dir, types):
                 shutil.copy(source_file_path, target_file_path)
         print(f"{id}")
     except Exception as e:
-        error = f"[ERROR] download_image {id}: {e}"
+        error = f"[ERROR] copy_image {id}: {e}"
         print(error)
         logging.error(error)
 

@@ -9,9 +9,9 @@ import { PlayIcon, PauseIcon } from "@yamada-ui/lucide";
 import { BarChart, BarProps } from "@yamada-ui/charts";
 
 // 閾値
-const threshold = 0.9;
+const threshold = 0.5;
 // 表示する上位のクラス数
-const topCount = 5;
+const topCount = 3;
 
 const url = `${import.meta.env.BASE_URL}models`;
 const pokedex_bg = `${import.meta.env.BASE_URL}pokedex_bg.png`;
@@ -19,10 +19,32 @@ const pokedex_bg = `${import.meta.env.BASE_URL}pokedex_bg.png`;
 // 利用可能なモデルのリスト
 const models = [
   {
-    name: '151classes_8-15epochs',
-    url: `/151classes_8-15epochs_tfjs`,
+    name: 'タイプ判定',
+    url: `/types_1`,
     shape: 224
   },
+];
+
+// タイプ名とその順番
+export const typesList: string[] = [
+  "ノーマル",
+  "ほのお",
+  "みず",
+  "くさ",
+  "でんき",
+  "こおり",
+  "かくとう",
+  "どく",
+  "じめん",
+  "ひこう",
+  "エスパー",
+  "むし",
+  "いわ",
+  "ゴースト",
+  "ドラゴン",
+  "あく",
+  "はがね",
+  "フェアリー"
 ];
 
 const ImageClassifier: React.FC = () => {
@@ -47,7 +69,7 @@ const ImageClassifier: React.FC = () => {
   const [selectedModelUrl, setSelectedModelUrl] = useState<string>(models[0].url);
   const [model, setModel] = useState<tf.LayersModel | null>(null);
 
-  const [predictions, setPredictions] = useState<{ name: number; value: number }[]>([]);
+  const [predictions, setPredictions] = useState<{ name: string; value: number }[]>([]);
 
   const series: BarProps[] = useMemo(
     () =>
@@ -184,7 +206,7 @@ const ImageClassifier: React.FC = () => {
         const results = topK.map(
           (item) => {
             return {
-              name: item.id,
+              name: typesList[item.id],
               value: item.prob * 100
             };
           });
@@ -295,18 +317,20 @@ const ImageClassifier: React.FC = () => {
           dataKey="name"
           size="sm"
           unit="%"
-          yAxisProps={{ domain: [0, 100], tickCount: 6 }}
+          yAxisProps={{ domain: [0, 100], tickCount: 5 }}
           gridAxis="x"
           withTooltip={false}
           referenceLineProps={[{ y: threshold * 100, color: "red.500" }]}
         />
       </Box>
 
+      {/*
       <div>
         {predictions.map((result, index) => (
           <div key={index}>{result.name}: {result.value}</div>
         ))}
       </div>
+      */}
     </Container>
   );
 };
